@@ -1,0 +1,22 @@
+{
+	"manifest_version" : 2,
+
+	"name" : "GoHam",
+	"description" : "Convert the contents of your browser to latin. Sort of.",
+	"version" : "1.0",
+
+	"browser_action" : {
+		"default_icon" : "logo.png",
+		"default_popup" : "popup.html"
+	},
+
+	"content_scripts" : [
+		{
+			"matches" : ["*://*/*"],
+			"js" : ["doit.js"]
+		}
+	],
+
+	"permissions" : ["*://*/*", "activeTab"]
+
+}
