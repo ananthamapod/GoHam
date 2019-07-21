@@ -3,7 +3,7 @@
 
 	"name" : "GoHam",
 	"description" : "Convert the contents of your browser to latin. Sort of.",
-	"version" : "1.0",
+	"version" : "1.1",
 
 	"browser_action" : {
 		"default_icon" : "logo.png",
