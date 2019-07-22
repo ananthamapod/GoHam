@@ -5,6 +5,12 @@ Description: Identifies the text nodes in an HTML document.
 	consisting of the DOM element nodes starting at the HTML node
 Returns: Array of text Nodes
 */
+
+// Globals, loaded from options in main()...
+var _VowelSuffix="";
+var _ConstSuffix="";
+var _LeadingY=false;
+
 function textNodes() {
 	// Root HTML documents, could be multiple in cases of things like iframes or
 	// embedded documents
@@ -94,12 +100,13 @@ function firstUpperPos(camelWord) {
 
 function firstVowelPos(lowerWord) {
 	for (var i = 0; i < lowerWord.length; i++) {
-		switch (lowerWord.charAt(i)) {
+		switch (lowerWord[i]) {
 			case 'a':
 			case 'e':
 			case 'i':
 			case 'o':
 			case 'u':
+			case 'y':
 				return i;
 		}
 	}
@@ -160,13 +167,22 @@ function translate(words) {
 		}
 
 		// Translate to Pig Latin
-		var vowelPos = firstVowelPos(word);
+		if (word[0] != "y") {
+			vowelPos = firstVowelPos(word);
+		} else { // Ignore leading "y"
+			vowelPos = 1+firstVowelPos(word.slice(1));
+		}
+
 		if (vowelPos === 0) {
-			word += "way"; // The rule for leading vowels
+			word += _VowelSuffix; // The rule for leading vowels
 		} else if ( vowelPos > 0 ) {
-			word = word.slice(vowelPos)+word.slice(0,vowelPos)+"ay"; // Leading consonants rule
+			word = word.slice(vowelPos)+word.slice(0,vowelPos)+_ConstSuffix; // Leading consonants rule
+			if ( _LeadingY && word[0] == "y" ) {
+				// Help the reader know this should be an "ai" sound, not "ye"
+				word = "ẏ"+word.slice(1);
+			}
 		} else {
-			word += "ay"; // Rule for no vowels at all (made this rule up just now, Good Enough™)
+			word += _ConstSuffix; // Rule for no vowels at all (made this rule up just now, Good Enough™)
 		}
 
 		// Restore capitalisation
@@ -197,12 +213,30 @@ function swap(node) {
 }
 
 function main() {
-	// Find text nodes
-	var leafNodes = textNodes();
+	// Load options
+	chrome.storage.sync.get({
+		disable: false,
+		suffix: 'way',
+		hyphenate: false,
+		leadingy: false
+	}, function(items) {
+		if (!items.disable) {
+			_VowelSuffix = items.suffix;
+			_ConstSuffix = "ay";
+			_LeadingY = items.leadingy;
+			if (items.hyphenate) {
+				_VowelSuffix = "-"+_VowelSuffix;
+				_ConstSuffix = "-"+_ConstSuffix;
+			}
 
-	// Convert the text within each text node
-	leafNodes.forEach(function(elem,ind,arr) {
-		arr[ind] = swap(elem);
+			// Find text nodes
+			var leafNodes = textNodes();
+
+			// Convert the text within each text node
+			leafNodes.forEach(function(elem,ind,arr) {
+				arr[ind] = swap(elem);
+			});
+		}
 	});
 }
 

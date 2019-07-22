@@ -3,11 +3,19 @@
 
 	"name" : "GoHam",
 	"description" : "Convert the contents of your browser to latin. Sort of.",
-	"version" : "1.1",
-
+	"version" : "1.2",
+	"icons": {
+			"16": "logo16.png",
+			"48": "logo48.png",
+			"128": "logo.png" },
 	"browser_action" : {
 		"default_icon" : "logo.png",
 		"default_popup" : "popup.html"
+	},
+
+	"options_ui": {
+		"page": "options.html",
+		"open_in_tab": false
 	},
 
 	"content_scripts" : [
@@ -17,6 +25,6 @@
 		}
 	],
 
-	"permissions" : ["*://*/*", "activeTab"]
+	"permissions" : ["storage", "*://*/*", "activeTab"]
 
 }
