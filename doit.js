@@ -9,7 +9,7 @@ Returns: Array of text Nodes
 // Globals, loaded from options in main()...
 var _VowelSuffix="";
 var _ConstSuffix="";
-var _Separator=false;
+var _Separator="";
 
 function textNodes() {
 	// Root HTML documents, could be multiple in cases of things like iframes or
