@@ -1,9 +1,10 @@
 {
 	"manifest_version" : 2,
 
-	"name" : "GoHam",
-	"description" : "Convert the contents of your browser to latin. Sort of.",
-	"version" : "1.2",
+	"name" : "GoHam - Pig Latin Translator",
+	"short_name" : "GoHam",
+	"description" : "Automatically translates the Internet to Pig Latin.",
+	"version" : "1.2.1",
 	"icons": {
 			"16": "logo16.png",
 			"48": "logo48.png",

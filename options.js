@@ -2,13 +2,11 @@
 function save_options() {
   var disable = document.getElementById('disable').checked;
   var suffix = document.getElementById('suffix').value;
-  var hyphenate = document.getElementById('hyphenate').checked;
-  var leadingy = document.getElementById('leadingy').checked;
+  var hints = document.getElementById('hints').checked;
   chrome.storage.sync.set({
 	disable: disable,
     suffix: suffix,
-    hyphenate: hyphenate,
-	leadingy: leadingy
+	hints: hints
   }, function() {
     // Update status to let user know options were saved.
     var status = document.getElementById('status');
@@ -38,25 +36,22 @@ function restore_options() {
   chrome.storage.sync.get({
 	disable: false,
     suffix: 'way',
-    hyphenate: false,
-	leadingy: false
+	hints: false
   }, function(items) {
 	document.getElementById('disable').checked = items.disable;
     document.getElementById('suffix').value = items.suffix;
-    document.getElementById('hyphenate').checked = items.hyphenate;
-	document.getElementById('leadingy').checked = items.leadingy;
+	document.getElementById('hints').checked = items.hints;
+	toggle();
   });
 }
 
 function toggle(){
 	if (document.getElementById('disable').checked) {
-		document.getElementById('hyphenate').disabled = true;
 		document.getElementById('suffix').disabled = true;
-		document.getElementById('leadingy').disabled = true;
+		document.getElementById('hints').disabled = true;
 	} else {
-		document.getElementById('hyphenate').disabled = false;
 		document.getElementById('suffix').disabled = false;
-		document.getElementById('leadingy').disabled = false;
+		document.getElementById('hints').disabled = false;
 	}
 }
 

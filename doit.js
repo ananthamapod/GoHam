@@ -9,7 +9,7 @@ Returns: Array of text Nodes
 // Globals, loaded from options in main()...
 var _VowelSuffix="";
 var _ConstSuffix="";
-var _LeadingY=false;
+var _Separator=false;
 
 function textNodes() {
 	// Root HTML documents, could be multiple in cases of things like iframes or
@@ -174,15 +174,15 @@ function translate(words) {
 		}
 
 		if (vowelPos === 0) {
-			word += _VowelSuffix; // The rule for leading vowels
+			word += _Separator+_VowelSuffix; // The rule for leading vowels
 		} else if ( vowelPos > 0 ) {
-			word = word.slice(vowelPos)+word.slice(0,vowelPos)+_ConstSuffix; // Leading consonants rule
-			if ( _LeadingY && word[0] == "y" ) {
+			word = word.slice(vowelPos)+_Separator+word.slice(0,vowelPos)+_ConstSuffix; // Leading consonants rule
+			if ( _Separator && word[0] == "y" ) {
 				// Help the reader know this should be an "ai" sound, not "ye"
 				word = "ẏ"+word.slice(1);
 			}
 		} else {
-			word += _ConstSuffix; // Rule for no vowels at all (made this rule up just now, Good Enough™)
+			word += _Separator+_ConstSuffix; // Rule for no vowels at all (made this rule up just now, Good Enough™)
 		}
 
 		// Restore capitalisation
@@ -217,16 +217,13 @@ function main() {
 	chrome.storage.sync.get({
 		disable: false,
 		suffix: 'way',
-		hyphenate: false,
-		leadingy: false
+		hints: false
 	}, function(items) {
 		if (!items.disable) {
 			_VowelSuffix = items.suffix;
 			_ConstSuffix = "ay";
-			_LeadingY = items.leadingy;
-			if (items.hyphenate) {
-				_VowelSuffix = "-"+_VowelSuffix;
-				_ConstSuffix = "-"+_ConstSuffix;
+			if (items.hints) {
+				_Separator = "·";
 			}
 
 			// Find text nodes
