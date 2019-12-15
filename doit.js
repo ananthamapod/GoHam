@@ -5,6 +5,12 @@ Description: Identifies the text nodes in an HTML document.
 	consisting of the DOM element nodes starting at the HTML node
 Returns: Array of text Nodes
 */
+
+// Globals, loaded from options in main()...
+var _VowelSuffix="";
+var _ConstSuffix="";
+var _Separator="";
+
 function textNodes() {
 	// Root HTML documents, could be multiple in cases of things like iframes or
 	// embedded documents
@@ -49,66 +55,185 @@ function textNodes() {
 	return leafNodes;
 }
 
-/*#####################DEPRECATED######################*/
-function count_sylls(word) {
-  word = word.toLowerCase();
-  if(word.length <= 3) {
-  	return 1;
-  }
-  word = word.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, '');
-  word = word.replace(/^y/, '');
-  return word.match(/[aeiouy]{1,2}/g).length;
+/*
+
+"Junk" here defined as "any non-alpha Ascii characters".
+These will not be considered part of a word to be translated.
+
+Note: Extended ASCII codes and all Unicode characters are not
+considered junk and will be included for translation.
+
+*/
+
+function firstJunkPos(word) {
+	for (var i = 0; i < word.length; i++) {
+		charCode = word.charCodeAt(i);
+		if (charCode <= 64
+		|| (charCode >= 91 && charCode <= 96)
+		|| (charCode >= 123 && charCode <= 127)) {
+			return i;
+		}
+	}
+	return -1;
 }
-/*#####################################################*/
+
+function firstNonJunkPos(word) {
+	for (var i = 0; i < word.length; i++) {
+		charCode = word.charCodeAt(i);
+		if (charCode <= 64
+		|| (charCode >= 91 && charCode <= 96)
+		|| (charCode >= 123 && charCode <= 127)) {
+			continue;
+		} else {
+			return i;
+		}
+	}
+	return -1;
+}
+
+function firstUpperPos(camelWord) {
+	for (var i = 0; i < camelWord.length; i++) {
+		if ( camelWord[i] === camelWord[i].toUpperCase() ) return i;
+	}
+	return -1;
+}
+
+function firstVowelPos(lowerWord) {
+	for (var i = 0; i < lowerWord.length; i++) {
+		switch (lowerWord[i]) {
+			case 'a':
+			case 'e':
+			case 'i':
+			case 'o':
+			case 'u':
+			case 'y':
+				return i;
+		}
+	}
+	return -1;
+}
+
+function translate(words) {
+	for(var i = 0; i < words.length; i++) {
+		var word = words[i];
+
+		// Defaults
+		var leadingJunk = "";
+		var trailingJunkOrCompoundWords = "";
+		var wordCapitalised = false;
+
+		// Preserve and remove any leading junk...
+		var wordStart = firstNonJunkPos(word);
+		if (wordStart == -1) {
+			continue; // Nothing to translate
+		} else if (wordStart > 0) {
+			leadingJunk = word.slice(0, wordStart);
+			word = word.slice(wordStart);
+		}
+
+		// Process any futher junk or compound words...
+		var junkPos = firstJunkPos(word);
+		if (junkPos > -1) {
+			// Recursive "translate" call if the word still contains junk...
+			trailingJunkOrCompoundWords = translate([word.slice(junkPos)]).join("");
+			word = word.slice(0,junkPos);
+		}
+
+		// Quality controls...
+		if(word === "" ) {
+			// String is empty, ignore it.
+			words[i] = leadingJunk + trailingJunkOrCompoundWords;
+			continue;
+		} else if (word.length == 1 && "aiAI".indexOf(word) == -1 ) {
+			// Avoid translating non-word single characters (usually icons).
+			words[i] = leadingJunk + word + trailingJunkOrCompoundWords;
+			continue;
+		} else if (word.length > 1 && word == word.toUpperCase()) {
+			// Assume any words in FULL CAPS are accronyms and ignore them.
+			words[i] = leadingJunk + word + trailingJunkOrCompoundWords;
+			continue;
+		} else if (word.length > 1 && word.slice(1).toLowerCase() != word.slice(1)){
+			// The word is CamelCase, recursion the sucker...
+			var wordEnd = firstUpperPos(word.slice(1)) + 1;
+			trailingJunkOrCompoundWords = translate([word.slice(wordEnd)]).join("") + trailingJunkOrCompoundWords;
+			word = word.slice( 0, wordEnd );
+		}
+		// Yay! At this point we have something that resembles a single word worth translating.
+
+		// Remove capitalisation
+		if ( word[0] != word[0].toLowerCase() ) {
+			wordCapitalised = true;
+			word = word.toLowerCase();
+		}
+
+		// Translate to Pig Latin
+		if (word[0] != "y") {
+			vowelPos = firstVowelPos(word);
+		} else { // Ignore leading "y"
+			vowelPos = 1+firstVowelPos(word.slice(1));
+		}
+
+		if (vowelPos === 0) {
+			word += _Separator+_VowelSuffix; // The rule for leading vowels
+		} else if ( vowelPos > 0 ) {
+			word = word.slice(vowelPos)+_Separator+word.slice(0,vowelPos)+_ConstSuffix; // Leading consonants rule
+			if ( _Separator && word[0] == "y" ) {
+				// Help the reader know this should be an "ai" sound, not "ye"
+				word = "ẏ"+word.slice(1);
+			}
+		} else {
+			word += _Separator+_ConstSuffix; // Rule for no vowels at all (made this rule up just now, Good Enough™)
+		}
+
+		// Restore capitalisation
+		if (wordCapitalised) {
+			word = word[0].toUpperCase() + word.slice(1);
+		}
+
+		// Restore junk and/or compound words
+		words[i] = leadingJunk + word + trailingJunkOrCompoundWords;
+	}
+	return words;
+}
 
 function swap(node) {
-	var re = /[\s,;.\[\]()"!?]+/;
-	var vowels = "AEIOUaeiou";
-
+	if (node.parentNode.classList.contains("notranslate")
+	||  node.parentNode.getAttribute("translate") == "no"){
+		// https://www.w3schools.com/tags/att_global_translate.asp
+		return;
+	}
+	var re = /[\s]+/;
 	var textData = node.data;
 	var words = textData.split(re);
-	var size = words.length;
-	for(var i = 0; i < size; i++) {
-		var word = words[i];
-		// if the string is empty, you ignore it
-		if(word == "") {
-			continue;
-		}
-		// Check first letter for what to do for conversion
-		var starter = word[0];
-		if(vowels.indexOf(starter) === -1) {
-			word = word.slice(1) + starter + "ay";
-		} else {
-			word += "yay";
-		}
-		//var numSylls = count_sylls(words[i]);
-		// updates words in word list
-		words[i] = word;
-	}
+
+	words = translate(words);
 
 	// Set the text node to the pig Latin version
 	node.data = words.join(' ');
 }
 
-/*#####################DEPRECATED######################*/
-function findFirstSyll(word, numSylls) {
-	if(numSylls == 1) {
-		return word.length;
-	}
-	if(numSylls == 2) {
-
-	}
-}
-/*#####################################################*/
-
-
 function main() {
-	// Find text nodes
-	var leafNodes = textNodes();
+	// Load options
+	chrome.storage.sync.get({
+		disable: false,
+		suffix: 'way',
+		hints: false
+	}, function(items) {
+		if (!items.disable) {
+			_VowelSuffix = items.suffix;
+			_ConstSuffix = "ay";
+			if (items.hints) {
+				_Separator = "·";
+			}
 
-	// Convert the text within each text node
-	leafNodes.forEach(function(elem,ind,arr) {
-		arr[ind] = swap(elem);
+			// Find text nodes
+			var leafNodes = textNodes();
+
+			// Convert the text within each text node
+			leafNodes.forEach(function(elem,ind,arr) {
+				arr[ind] = swap(elem);
+			});
+		}
 	});
 }
 
